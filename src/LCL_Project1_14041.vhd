@@ -14,7 +14,6 @@ entity LCL_Project1_14041 is
     pw_in : in  std_logic_vector(3 downto 0);
     seg   : out std_logic_vector(6 downto 0);
     ad    : out std_logic_vector(3 downto 0)
-
   );
 end entity;
 
@@ -62,31 +61,36 @@ architecture RTL of LCL_Project1_14041 is
     28 => "0010011",
     29 => "0010010",
     -- End of light show variations
-    30 => "0111111" -- -
+    30 => "1110111" -- -
   );
 
   constant DIV_TICKS : integer := integer(CLK_FREQ / TOTAL_SCAN_HZ);
   signal refresh_cnt : integer range 0 to DIV_TICKS := 0;
-  signal active_slot : integer range 0 to 3         := 0;
+  signal active_slot : integer range - 1 to 3       := 0;
 
   signal sec_count   : integer range 0 to CLK_FREQ := 0;
   signal counter_val : integer range 0 to 15       := 0;
 
-  signal light_show_hz   : integer                          := integer(CLK_FREQ / 2);
+  constant light_show_hz : integer := integer(CLK_FREQ / 2);
   signal lightshow_count : integer range 0 to light_show_hz := 0;
   signal lightshow_step  : integer range 0 to 5             := 0;
 
+  constant blinker_hz : integer := integer(CLK_FREQ / 2);
+  signal blinker_count : integer range 0 to blinker_hz := 0;
+  signal blinker_state : std_logic                     := '0';
+
   constant pw : std_logic_vector(3 downto 0) := "1001";
-  type array2d_4to4 is array (0 to 3) of std_logic_vector(3 downto 0);
+  type array2d_5to4 is array (- 1 to 3) of std_logic_vector(3 downto 0);
   type array2d_4to5 is array (0 to 3) of std_logic_vector(4 downto 0);
   signal seg_slots_reg  : array2d_4to5 := (others => (others => '0'));
   signal seg_slots_next : array2d_4to5 := (others => (others => '0'));
 
-  constant ad_pattern : array2d_4to4 := (
-    0 => "1110",
-    1 => "1101",
-    2 => "1011",
-    3 => "0111"
+  constant ad_pattern : array2d_5to4 := (
+    - 1 => "1111",
+    0   => "1110",
+    1   => "1101",
+    2   => "1011",
+    3   => "0111"
   );
 
   signal correct_pw : std_logic := '0';
@@ -96,42 +100,49 @@ architecture RTL of LCL_Project1_14041 is
 
 begin
 
-  refresh_prc: process (clk) is
+  seg <= seg_display(to_integer(unsigned(seg_slots_reg(active_slot))));
+  ad  <= ad_pattern(active_slot);
+
+  refresh_prc: process (clk, blinker_state) is
+    variable blink_s : std_logic;
   begin
     if rising_edge(clk) then
-      if refresh_cnt < DIV_TICKS then
-        refresh_cnt <= refresh_cnt + 1;
-      else
+      blink_s := blinker_state;
+      if blink_s = '1' then
+        active_slot <= - 1;
         refresh_cnt <= 0;
-        if active_slot = 3 then
-          active_slot <= 0;
+      else
+        if refresh_cnt < DIV_TICKS then
+          refresh_cnt <= refresh_cnt + 1;
         else
-          active_slot <= active_slot + 1;
+          refresh_cnt <= 0;
+          if active_slot = 3 then
+            active_slot <= 0;
+          else
+            active_slot <= active_slot + 1;
+          end if;
         end if;
       end if;
     end if;
   end process;
 
-  ad <= ad_pattern(active_slot);
-
   sync_proc: process (clk)
   begin
     if rising_edge(clk) then
-      ts_sync_0 <= ts; -- capture async input
+      ts_sync_0 <= ts; -- capture user push buttons input
       ts_sync_1 <= ts_sync_0; -- stable in clk domain
     end if;
   end process;
 
-  state_update: process (clk) is
+  state_update_proc: process (clk) is
   begin
     if rising_edge(clk) then
       cr_state <= next_state;
     end if;
   end process;
 
-  set_transitions: process (cr_state, ts) is
+  set_transitions_proc: process (clk, cr_state, ts) is
   begin
-
     if rising_edge(clk) then
       if ts_sync_1(0) = '0' then
         next_state <= student_number;
@@ -149,27 +160,16 @@ begin
         next_state <= enter_pw;
       end if;
     end if;
-
-    -- case ts is
-    --   when "1110" => next_state <= student_number;
-    --   when "1101" => next_state <= counter;
-    --   when "1011" => next_state <= enter_pw;
-    --   when "0111" =>
-    --     if cr_state = enter_pw and correct_pw = '1' then
-    --       -- light show
-    --     end if;
-    --   when others => next_state <= next_state;
-    -- end case;
   end process;
 
-  seg_slots_reg_update: process (clk)
+  seg_slots_reg_update_proc: process (clk)
   begin
     if rising_edge(clk) then
       seg_slots_reg <= seg_slots_next;
     end if;
   end process;
 
-  counter_state: process (CLK) is
+  counter_state: process (clk, cr_state) is
   begin
     if cr_state = counter then
       if rising_edge(clk) then
@@ -189,30 +189,24 @@ begin
     end if;
   end process;
 
-  seg <= seg_display(to_integer(unsigned(seg_slots_reg(active_slot))));
-
-  seg_slots_next_set: process (cr_state, counter_val, correct_pw)
+  seg_slots_next_set_proc: process (cr_state, counter_val, correct_pw, lightshow_step)
     variable counter_v   : integer;
     variable lightshow_s : integer;
   begin
-
     case cr_state is
       when student_number =>
         seg_slots_next(3) <= "00000";
         seg_slots_next(2) <= "00000";
-        seg_slots_next(1) <= "00100";
-        seg_slots_next(0) <= "00010";
-      -- seg_slots_next(3) <= std_logic_vector(to_unsigned(24, 5));
-      -- seg_slots_next(2) <= std_logic_vector(to_unsigned(24, 5));
-      -- seg_slots_next(1) <= std_logic_vector(to_unsigned(19, 5));
-      -- seg_slots_next(0) <= std_logic_vector(to_unsigned(14, 5));
+        seg_slots_next(1) <= "00001";
+        seg_slots_next(0) <= "00001";
+
       when counter =>
         counter_v := counter_val;
 
         seg_slots_next(3) <= std_logic_vector(to_unsigned(counter_v mod 10, 5));
         seg_slots_next(2) <= std_logic_vector(to_unsigned((counter_v / 10) mod 10, 5));
-        seg_slots_next(1) <= std_logic_vector(to_unsigned((counter_v / 100) mod 10, 5));
-        seg_slots_next(0) <= std_logic_vector(to_unsigned((counter_v / 1000) mod 10, 5));
+        seg_slots_next(1) <= std_logic_vector(to_unsigned(0, 5));
+        seg_slots_next(0) <= std_logic_vector(to_unsigned(0, 5));
 
       when enter_pw =>
         if correct_pw = '1' then
@@ -232,9 +226,6 @@ begin
         seg_slots_next(1) <= std_logic_vector(to_unsigned(lightshow_s + 15, 5));
         seg_slots_next(0) <= std_logic_vector(to_unsigned(lightshow_s + 10, 5));
 
-      when others =>
-        seg_slots_next <= (others => (others => '0'));
-
     end case;
   end process;
 
@@ -249,7 +240,8 @@ begin
     end if;
   end process;
 
-  light_show_proc: process (clk)
+  light_show_proc: process (clk, cr_state)
+    variable lightshow_step_dir : std_logic := '0';
   begin
     if cr_state = lightshow then
       if rising_edge(clk) then
@@ -258,14 +250,37 @@ begin
         else
           lightshow_count <= 0;
           if lightshow_step = 4 then
-            lightshow_step <= 0;
-          else
+            lightshow_step_dir := '1';
+          elsif lightshow_step = 0 then
+            lightshow_step_dir := '0';
+          end if;
+          if lightshow_step_dir = '0' then
             lightshow_step <= lightshow_step + 1;
+          else
+            lightshow_step <= lightshow_step - 1;
           end if;
         end if;
       end if;
     else
       lightshow_count <= 0;
+      lightshow_step <= 0;
+    end if;
+  end process;
+
+  wrong_pw_seg_blink_proc: process (clk, cr_state) is
+  begin
+    if cr_state = enter_pw and correct_pw = '0' then
+      if rising_edge(clk) then
+        if blinker_count < blinker_hz then
+          blinker_count <= blinker_count + 1;
+        else
+          blinker_state <= not blinker_state;
+          blinker_count <= 0;
+        end if;
+      end if;
+    else
+      blinker_state <= '0';
+      blinker_count <= 0;
     end if;
   end process;
 
