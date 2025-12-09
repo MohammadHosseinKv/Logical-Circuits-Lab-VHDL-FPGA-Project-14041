@@ -20,7 +20,7 @@ end entity;
 architecture RTL of LCL_Project1_14041 is
 
   type state is (student_number, counter, enter_pw, lightshow);
-  signal cr_state   : state := counter;
+  signal cr_state   : state := student_number;
   signal next_state : state := cr_state;
 
   type seg_array is array (0 to 30) of std_logic_vector(6 downto 0);
@@ -103,7 +103,7 @@ begin
   seg <= seg_display(to_integer(unsigned(seg_slots_reg(active_slot))));
   ad  <= ad_pattern(active_slot);
 
-  refresh_prc: process (clk, blinker_state) is
+  refresh_prc: process (clk, blinker_state)
     variable blink_s : std_logic;
   begin
     if rising_edge(clk) then
@@ -141,7 +141,7 @@ begin
     end if;
   end process;
 
-  set_transitions_proc: process (clk, cr_state, ts) is
+  set_transitions_proc: process (clk, cr_state, ts)
   begin
     if rising_edge(clk) then
       if ts_sync_1(0) = '0' then
@@ -267,7 +267,7 @@ begin
     end if;
   end process;
 
-  wrong_pw_seg_blink_proc: process (clk, cr_state) is
+  wrong_pw_seg_blink_proc: process (clk, cr_state)
   begin
     if cr_state = enter_pw and correct_pw = '0' then
       if rising_edge(clk) then
