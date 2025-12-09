@@ -267,7 +267,7 @@ begin
     end if;
   end process;
 
-  wrong_pw_seg_blink_proc: process (clk, cr_state)
+  wrong_pw_seg_blink_proc: process (clk, cr_state, correct_pw)
   begin
     if cr_state = enter_pw and correct_pw = '0' then
       if rising_edge(clk) then
