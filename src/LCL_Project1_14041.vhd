@@ -95,8 +95,8 @@ architecture RTL of LCL_Project1_14041 is
 
   signal correct_pw : std_logic := '0';
 
-  signal ts_sync_0 : std_logic_vector(3 downto 0) := (others => '1');
-  signal ts_sync_1 : std_logic_vector(3 downto 0) := (others => '1');
+  signal ts_sync_0 : std_logic_vector(2 downto 0) := (others => '1');
+  signal ts_sync_1 : std_logic_vector(2 downto 0) := (others => '1');
 
 begin
 
@@ -129,7 +129,7 @@ begin
   sync_proc: process (clk)
   begin
     if rising_edge(clk) then
-      ts_sync_0 <= ts; -- capture user push buttons input
+      ts_sync_0 <= ts(2 downto 0); -- capture user push buttons input
       ts_sync_1 <= ts_sync_0; -- stable in clk domain
     end if;
   end process;
