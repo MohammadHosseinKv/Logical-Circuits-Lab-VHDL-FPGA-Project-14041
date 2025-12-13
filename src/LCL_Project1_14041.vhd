@@ -100,8 +100,9 @@ architecture RTL of LCL_Project1_14041 is
 
 begin
 
-  seg <= seg_display(to_integer(unsigned(seg_slots_reg(active_slot))));
-  ad  <= ad_pattern(active_slot);
+  seg <= seg_display(30) when active_slot = - 1 else
+         seg_display(to_integer(unsigned(seg_slots_reg(active_slot))));
+  ad <= ad_pattern(active_slot);
 
   refresh_prc: process (clk, blinker_state)
     variable blink_s : std_logic;
@@ -112,7 +113,7 @@ begin
         active_slot <= - 1;
         refresh_cnt <= 0;
       else
-        if refresh_cnt < DIV_TICKS then
+        if refresh_cnt < DIV_TICKS - 1 then
           refresh_cnt <= refresh_cnt + 1;
         else
           refresh_cnt <= 0;
@@ -173,7 +174,7 @@ begin
   begin
     if cr_state = counter then
       if rising_edge(clk) then
-        if sec_count < CLK_FREQ then
+        if sec_count < CLK_FREQ - 1 then
           sec_count <= sec_count + 1;
         else
           sec_count <= 0;
@@ -245,7 +246,7 @@ begin
   begin
     if cr_state = lightshow then
       if rising_edge(clk) then
-        if lightshow_count < light_show_hz then
+        if lightshow_count < light_show_hz - 1 then
           lightshow_count <= lightshow_count + 1;
         else
           lightshow_count <= 0;
@@ -271,7 +272,7 @@ begin
   begin
     if cr_state = enter_pw and correct_pw = '0' then
       if rising_edge(clk) then
-        if blinker_count < blinker_hz then
+        if blinker_count < blinker_hz - 1 then
           blinker_count <= blinker_count + 1;
         else
           blinker_state <= not blinker_state;
