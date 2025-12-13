@@ -25,6 +25,7 @@
 /implementation/
 /ise_project/
 /logs/
+/docs/**
 /*
 /*/
 *.bak
@@ -37,6 +38,8 @@
 !/sim/
 !/scripts/
 !/.vscode/
+!/docs/
+!/docs/*.pdf
 !/.gitignore
 !/README.md
 !/build.bat
