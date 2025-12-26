@@ -1,4 +1,0 @@
-{
-    "tinymist.exportPdf": "onSave",
-    "tinymist.outputPath": "$dir/$name"
-}
