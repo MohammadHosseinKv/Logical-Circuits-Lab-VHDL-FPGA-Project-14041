@@ -35,13 +35,7 @@
 !*.ucf
 !/constraints/
 !/src/
-!/sim/
-!/scripts/
-!/.vscode/
 !/docs/
 !/docs/*.pdf
 !/.gitignore
 !/README.md
-!/build.bat
-!/program_fpga.bat
-!/sim_isim.bat
